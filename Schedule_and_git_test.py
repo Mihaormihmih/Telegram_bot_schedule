@@ -1,14 +1,42 @@
 from aiogram import Bot, types, Dispatcher
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
+from aiogram import F
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 import asyncio
 import aioschedule
 from datetime import date
 
-TOKEN = ''  #
-chatIDs = []  # ,
+TOKEN = 'API_TOKEN'
+chatIDs = []
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+
+builder = InlineKeyboardBuilder()
+in_but_add = types.InlineKeyboardButton(text="Добавить меня", callback_data="call_addme")
+in_but_del = types.InlineKeyboardButton(text="Удалить меня", callback_data="call_delme")
+builder.add(in_but_add)
+builder.add(in_but_del)
+
+
+@dp.callback_query(F.data == "call_delme")
+async def callback_delme(callback: types.CallbackQuery):
+    if callback.from_user.id in chatIDs:
+        await bot.send_message(callback.from_user.id, text='Я удалил тебя из списка, теперь тебе не будут приходить уведомления❗')
+        chatIDs.remove(callback.from_user.id)
+
+    else:
+        await bot.send_message(callback.from_user.id, text='Тебя нет в списке❗')
+
+
+@dp.callback_query(F.data == "call_addme")
+async def callback_addme(callback: types.CallbackQuery):
+    if callback.from_user.id not in chatIDs:
+        await bot.send_message(callback.from_user.id, text='Я добавил тебя в список, теперь тебе будут приходить уведомления❗')
+        chatIDs.append(callback.from_user.id)
+
+    else:
+        await bot.send_message(callback.from_user.id, text='Ты уже есть в списке❗')
 
 
 @dp.message(CommandStart())
@@ -16,7 +44,8 @@ async def echo_message(msg: types.Message):
     await bot.send_message(msg.from_user.id, 'Я буду писать тебе, когда начинается и заканчивается урок\n'
                                              'Чтобы добавиться в список получателей уведомлений, используйте команду'
                                              ' "/addme"\n'
-                                             'Чтобы удалиться из списка, используйте команду "/delme"')
+                                             'Чтобы удалиться из списка, используйте команду "/delme"'
+                           , reply_markup=builder.as_markup())
 
 
 @dp.message()   # commands delme/addme
